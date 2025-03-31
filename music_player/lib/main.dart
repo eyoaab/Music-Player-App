@@ -104,22 +104,13 @@ class MyApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          return DevicePreview(
-            enabled: true, // Enable Device Preview for testing
-            builder: (context) => MaterialApp(
-              title: 'Eyobifay',
-              theme: themeProvider.currentTheme,
-              home: const ConnectivityWrapper(child: MainScreen()),
-              debugShowCheckedModeBanner: false,
-              onGenerateRoute: AppRoutes.generateRoute,
-              initialRoute: '/',
-              useInheritedMediaQuery:
-                  true, // Ensure Device Preview works correctly
-              locale: DevicePreview.locale(
-                  context), // Use the locale from Device Preview
-              builder:
-                  DevicePreview.appBuilder, // Wrap the app with Device Preview
-            ),
+          return MaterialApp(
+            title: 'Eyobifay',
+            theme: themeProvider.currentTheme,
+            home: const ConnectivityWrapper(child: MainScreen()),
+            debugShowCheckedModeBanner: false,
+            onGenerateRoute: AppRoutes.generateRoute,
+            initialRoute: '/',
           );
         },
       ),
