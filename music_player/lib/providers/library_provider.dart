@@ -273,24 +273,35 @@ class LibraryProvider with ChangeNotifier {
       _playlists = jsonList.map((json) => Playlist.fromJson(json)).toList();
 
       // Load songs for each playlist
-      for (final playlist in _playlists) {
+      for (var i = 0; i < _playlists.length; i++) {
+        final playlist = _playlists[i];
         final songIds = playlist.songIds;
         final songs = <Song>[];
 
         for (final songId in songIds) {
           // First check if the song is in favorites or downloaded songs
-          Song? song = _favoriteSongs.firstWhere((s) => s.id == songId,
-              orElse: () => Song.empty());
+          Song? song = _favoriteSongs.firstWhere(
+            (s) => s.id == songId,
+            orElse: () => Song.empty(),
+          );
+
           if (song.id.isEmpty) {
-            song = _downloadedSongs.firstWhere((s) => s.id == songId,
-                orElse: () => Song.empty());
+            song = _downloadedSongs.firstWhere(
+              (s) => s.id == songId,
+              orElse: () => Song.empty(),
+            );
           }
 
-          // If not found locally, try to fetch from API (or skip in web)
-          if (song.id.isEmpty && !kIsWeb) {
-            final apiSong = await _deezerApiService.getTrack(songId);
-            if (apiSong != null) {
-              songs.add(apiSong);
+          // If not found locally, try to fetch from API
+          if (song.id.isEmpty) {
+            try {
+              final apiSong = await _deezerApiService.getTrack(songId);
+              if (apiSong != null) {
+                songs.add(apiSong);
+                continue;
+              }
+            } catch (e) {
+              debugPrint('Error fetching song from API: $e');
             }
           } else if (song.id.isNotEmpty) {
             songs.add(song);
@@ -298,11 +309,10 @@ class LibraryProvider with ChangeNotifier {
         }
 
         // Update playlist songs
-        final index = _playlists.indexWhere((p) => p.id == playlist.id);
-        if (index != -1) {
-          _playlists[index] = playlist.copyWith(songs: songs);
-        }
+        _playlists[i] = playlist.copyWith(songs: songs);
       }
+
+      debugPrint('Loaded ${_playlists.length} playlists with their songs');
     } catch (e) {
       debugPrint('Error loading playlists from storage: $e');
     }
@@ -314,6 +324,7 @@ class LibraryProvider with ChangeNotifier {
       final playlistsJson =
           _playlists.map((playlist) => playlist.toJson()).toList();
       await prefs.setString('playlists', json.encode(playlistsJson));
+      debugPrint('Saved ${_playlists.length} playlists to storage');
     } catch (e) {
       debugPrint('Error saving playlists to storage: $e');
     }
@@ -333,6 +344,7 @@ class LibraryProvider with ChangeNotifier {
     await _savePlaylistsToStorage();
     notifyListeners();
 
+    debugPrint('Created new playlist: "${name}" with ID: $id');
     return playlist;
   }
 
@@ -342,13 +354,19 @@ class LibraryProvider with ChangeNotifier {
       _playlists[index] = updatedPlaylist;
       await _savePlaylistsToStorage();
       notifyListeners();
+      debugPrint('Updated playlist: "${updatedPlaylist.name}"');
     }
   }
 
   Future<void> deletePlaylist(String playlistId) async {
+    final playlistName = _playlists
+        .firstWhere((p) => p.id == playlistId,
+            orElse: () => Playlist.create(id: '', name: 'Unknown'))
+        .name;
     _playlists.removeWhere((p) => p.id == playlistId);
     await _savePlaylistsToStorage();
     notifyListeners();
+    debugPrint('Deleted playlist: "$playlistName"');
   }
 
   Future<void> addSongToPlaylist(String playlistId, Song song) async {
@@ -358,16 +376,24 @@ class LibraryProvider with ChangeNotifier {
       _playlists[index] = updated;
       await _savePlaylistsToStorage();
       notifyListeners();
+      debugPrint(
+          'Added song "${song.title}" to playlist "${_playlists[index].name}"');
     }
   }
 
   Future<void> removeSongFromPlaylist(String playlistId, String songId) async {
     final index = _playlists.indexWhere((p) => p.id == playlistId);
     if (index != -1) {
+      final songName = _playlists[index]
+          .songs
+          .firstWhere((s) => s.id == songId, orElse: () => Song.empty())
+          .title;
       final updated = _playlists[index].removeSong(songId);
       _playlists[index] = updated;
       await _savePlaylistsToStorage();
       notifyListeners();
+      debugPrint(
+          'Removed song "$songName" from playlist "${_playlists[index].name}"');
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/library_provider.dart';
@@ -5,6 +7,7 @@ import '../providers/player_provider.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../widgets/song_list_item.dart';
+import '../screens/playlist_detail_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -82,6 +85,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               onPressed: () => _showCreatePlaylistDialog(context),
               backgroundColor: primaryColor,
               foregroundColor: Colors.black87,
+              tooltip: 'Create new playlist',
               child: const Icon(Icons.add),
             )
           : null,
@@ -102,6 +106,7 @@ class _LibraryScreenState extends State<LibraryScreen>
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Name'),
+              autofocus: true,
             ),
             TextField(
               controller: descriptionController,
@@ -131,11 +136,10 @@ class _LibraryScreenState extends State<LibraryScreen>
         final libraryProvider =
             Provider.of<LibraryProvider>(context, listen: false);
 
-        final result = await libraryProvider.createPlaylist(
+        await libraryProvider.createPlaylist(
             name, description.isEmpty ? null : description);
 
         if (context.mounted) {
-          Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Playlist "$name" created'),
@@ -148,265 +152,83 @@ class _LibraryScreenState extends State<LibraryScreen>
   }
 }
 
-class _DownloadsTab extends StatefulWidget {
+class _DownloadsTab extends StatelessWidget {
   const _DownloadsTab();
-
-  @override
-  State<_DownloadsTab> createState() => _DownloadsTabState();
-}
-
-class _DownloadsTabState extends State<_DownloadsTab> {
-  String _storageInfo = "0 MB";
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStorageInfo();
-  }
-
-  Future<void> _loadStorageInfo() async {
-    final libraryProvider =
-        Provider.of<LibraryProvider>(context, listen: false);
-    final storageBytes = await libraryProvider.calculateStorageUsage();
-
-    if (context.mounted) {
-      setState(() {
-        _storageInfo = _formatStorageSize(storageBytes);
-      });
-    }
-  }
-
-  String _formatStorageSize(int bytes) {
-    String storageText;
-    if (bytes < 1024) {
-      storageText = "$bytes B";
-    } else if (bytes < 1024 * 1024) {
-      storageText = "${(bytes / 1024).toStringAsFixed(1)} KB";
-    } else if (bytes < 1024 * 1024 * 1024) {
-      storageText = "${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB";
-    } else {
-      storageText = "${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB";
-    }
-    return storageText;
-  }
 
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return RefreshIndicator(
-      onRefresh: () async {
-        await libraryProvider.loadDownloadedSongs();
-        await _loadStorageInfo();
-      },
-      child: Column(
-        children: [
-          // Storage info card
-          Card(
-            margin: const EdgeInsets.all(16),
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.storage,
-                      size: 32,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      onRefresh: () => libraryProvider.loadDownloadedSongs(),
+      child: libraryProvider.isLoadingDownloaded
+          ? const Center(child: CircularProgressIndicator())
+          : libraryProvider.downloadedSongs.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Storage Usage',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                      Icon(
+                        Icons.download,
+                        size: 80,
+                        color: Colors.grey.withOpacity(0.5),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 16),
                       Text(
-                        _storageInfo,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color:
-                                  isDarkMode ? Colors.white70 : Colors.black54,
-                            ),
+                        'No downloaded songs',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Your downloaded songs will appear here',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _loadStorageInfo,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ],
-              ),
-            ),
-          ),
+                )
+              : Column(
+                  children: [
+                    // Storage usage info
+                    FutureBuilder<int>(
+                      future: libraryProvider.calculateStorageUsage(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
+                        final storageBytes = snapshot.data!;
+                        final storageMB =
+                            (storageBytes / (1024 * 1024)).toStringAsFixed(1);
 
-          // Downloaded songs list
-          Expanded(
-            child: libraryProvider.isLoadingDownloaded
-                ? const Center(child: CircularProgressIndicator())
-                : libraryProvider.downloadedSongs.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.download_done,
-                              size: 80,
-                              color: Colors.grey.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No downloaded songs',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Download songs for offline playback',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.storage, size: 20),
+                              const SizedBox(width: 8),
+                              Text('Storage usage: $storageMB MB'),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                    Expanded(
+                      child: ListView.builder(
                         itemCount: libraryProvider.downloadedSongs.length,
                         itemBuilder: (context, index) {
                           final song = libraryProvider.downloadedSongs[index];
-                          return _buildSongTile(
-                            context,
-                            song,
-                            libraryProvider,
-                            playerProvider,
+                          return SongListItem(
+                            song: song,
+                            onTap: () {
+                              playerProvider.playSong(song);
+                            },
                           );
                         },
                       ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSongTile(
-    BuildContext context,
-    Song song,
-    LibraryProvider libraryProvider,
-    PlayerProvider playerProvider,
-  ) {
-    return Dismissible(
-      key: Key(song.id),
-      background: Container(
-        color: Colors.red,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
-      ),
-      direction: DismissDirection.endToStart,
-      confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Confirm Deletion'),
-            content: Text(
-                'Are you sure you want to delete "${song.title}" from your downloads?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-        );
-      },
-      onDismissed: (direction) {
-        _deleteDownloadedSong(song);
-      },
-      child: SongListItem(
-        song: song,
-        onTap: () => playerProvider.playSong(song),
-        onOptionsPressed: () =>
-            _showDownloadOptions(context, song, libraryProvider),
-      ),
-    );
-  }
-
-  void _deleteDownloadedSong(Song song) {
-    final libraryProvider =
-        Provider.of<LibraryProvider>(context, listen: false);
-    libraryProvider.deleteSongDownload(song.id);
-    _loadStorageInfo();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${song.title} removed from downloads'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-  }
-
-  void _showDownloadOptions(
-    BuildContext context,
-    Song song,
-    LibraryProvider libraryProvider,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.delete),
-                title: const Text('Delete Download'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _deleteDownloadedSong(song);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.playlist_add),
-                title: const Text('Add to Playlist'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Show add to playlist dialog
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.info),
-                title: const Text('Song Information'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Show song information
-                },
-              ),
-            ],
-          ),
-        );
-      },
+                    ),
+                  ],
+                ),
     );
   }
 }
@@ -431,7 +253,7 @@ class _FavoritesTab extends StatelessWidget {
                       Icon(
                         Icons.favorite,
                         size: 80,
-                        color: Colors.red.withOpacity(0.5),
+                        color: Colors.grey.withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -440,7 +262,7 @@ class _FavoritesTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Add songs to your favorites',
+                        'Your favorite songs will appear here',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -452,7 +274,9 @@ class _FavoritesTab extends StatelessWidget {
                     final song = libraryProvider.favoriteSongs[index];
                     return SongListItem(
                       song: song,
-                      onTap: () => playerProvider.playSong(song),
+                      onTap: () {
+                        playerProvider.playSong(song);
+                      },
                     );
                   },
                 ),
@@ -463,70 +287,12 @@ class _FavoritesTab extends StatelessWidget {
 class _PlaylistsTab extends StatelessWidget {
   const _PlaylistsTab();
 
-  Future<void> _showCreatePlaylistDialog(BuildContext context) async {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create Playlist'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration:
-                  const InputDecoration(labelText: 'Description (optional)'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true && context.mounted) {
-      final name = nameController.text.trim();
-      final description = descriptionController.text.trim();
-
-      if (name.isNotEmpty) {
-        final libraryProvider =
-            Provider.of<LibraryProvider>(context, listen: false);
-
-        final result = await libraryProvider.createPlaylist(
-            name, description.isEmpty ? null : description);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Playlist "$name" created'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
 
     return RefreshIndicator(
-      onRefresh: () => libraryProvider.loadPlaylists(),
+      onRefresh: () => _refreshPlaylists(context),
       child: libraryProvider.isLoadingPlaylists
           ? const Center(child: CircularProgressIndicator())
           : libraryProvider.playlists.isEmpty
@@ -575,6 +341,7 @@ class _PlaylistsTab extends StatelessWidget {
     LibraryProvider libraryProvider,
   ) {
     final songs = _getSongsForPlaylist(playlist, libraryProvider);
+    log('Playlist "${playlist.name}" has ${songs.length} songs');
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -632,8 +399,41 @@ class _PlaylistsTab extends StatelessWidget {
   }
 
   List<Song> _getSongsForPlaylist(Playlist playlist, LibraryProvider provider) {
-    // Just return the songs directly from the playlist
-    return playlist.songs;
+    if (playlist.songs.isNotEmpty) {
+      // If songs are already loaded with the playlist, return them
+      return playlist.songs;
+    } else if (playlist.songIds.isNotEmpty) {
+      // If we have songIds but no songs, try to get them from various sources
+      final songs = <Song>[];
+      for (final songId in playlist.songIds) {
+        // Try to find in favorites first
+        Song? song = provider.favoriteSongs.firstWhere(
+          (s) => s.id == songId,
+          orElse: () => Song.empty(),
+        );
+
+        // If not in favorites, try downloaded songs
+        if (song.id.isEmpty) {
+          song = provider.downloadedSongs.firstWhere(
+            (s) => s.id == songId,
+            orElse: () => Song.empty(),
+          );
+        }
+
+        // If we found the song, add it
+        if (song.id.isNotEmpty) {
+          songs.add(song);
+        }
+      }
+
+      // If we collected any songs, return them
+      if (songs.isNotEmpty) {
+        return songs;
+      }
+    }
+
+    // If no songs were found, return an empty list
+    return [];
   }
 
   void _navigateToPlaylistDetail(
@@ -642,11 +442,12 @@ class _PlaylistsTab extends StatelessWidget {
     List<Song> songs,
   ) {
     // Navigate to playlist detail page
-    // This would be implemented in a real app
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Opening playlist "${playlist.name}"'),
-        duration: const Duration(seconds: 1),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlaylistDetailScreen(
+          playlist: playlist,
+        ),
       ),
     );
   }
@@ -738,11 +539,7 @@ class _PlaylistsTab extends StatelessWidget {
                     updatedAt: DateTime.now(),
                   );
 
-                  final index = libraryProvider.playlists
-                      .indexWhere((p) => p.id == playlist.id);
-                  if (index >= 0) {
-                    libraryProvider.playlists[index] = updatedPlaylist;
-                  }
+                  libraryProvider.updatePlaylist(updatedPlaylist);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -796,5 +593,90 @@ class _PlaylistsTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _refreshPlaylists(BuildContext context) async {
+    final libraryProvider =
+        Provider.of<LibraryProvider>(context, listen: false);
+
+    // Show a snackbar to indicate refresh is happening
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Refreshing playlists...'),
+        duration: Duration(seconds: 1),
+      ),
+    );
+
+    // Reload playlists
+    await libraryProvider.loadPlaylists();
+
+    // Show success message
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Found ${libraryProvider.playlists.length} playlists'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showCreatePlaylistDialog(BuildContext context) async {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create Playlist'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Name'),
+              autofocus: true,
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      final name = nameController.text.trim();
+      final description = descriptionController.text.trim();
+
+      if (name.isNotEmpty) {
+        final libraryProvider =
+            Provider.of<LibraryProvider>(context, listen: false);
+
+        await libraryProvider.createPlaylist(
+            name, description.isEmpty ? null : description);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Playlist "$name" created'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    }
   }
 }

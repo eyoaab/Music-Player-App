@@ -10,9 +10,9 @@ class FullPlayer extends StatefulWidget {
   final VoidCallback onClose;
 
   const FullPlayer({
-    Key? key,
+    super.key,
     required this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   State<FullPlayer> createState() => _FullPlayerState();

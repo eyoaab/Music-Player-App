@@ -41,21 +41,67 @@ class Playlist {
   }
 
   factory Playlist.fromJson(Map<String, dynamic> json) {
+    // Extract basic playlist data
+    final id = json['id'] as String;
+    final name = json['name'] as String;
+    final description = json['description'] as String?;
+    final coverUrl = json['coverUrl'] as String?;
+    final songIds =
+        (json['songIds'] as List<dynamic>).map((e) => e as String).toList();
+    final createdAt = DateTime.parse(json['createdAt'] as String);
+    final updatedAt = DateTime.parse(json['updatedAt'] as String);
+
+    // For songs array, try to parse if it exists (but most likely will be loaded separately)
+    List<Song> songs = [];
+    if (json.containsKey('songs') && json['songs'] is List) {
+      try {
+        songs = (json['songs'] as List)
+            .map((songJson) {
+              if (songJson is Map<String, dynamic>) {
+                // Convert duration from int (seconds) back to Duration object
+                final durationSeconds = songJson['duration'] as int? ?? 0;
+                return Song(
+                  id: songJson['id'] ?? '',
+                  title: songJson['title'] ?? '',
+                  artist: songJson['artist'] ?? '',
+                  artistId: songJson['artistId'] ?? '',
+                  album: songJson['album'] ?? '',
+                  albumId: songJson['albumId'] ?? '',
+                  coverUrl: songJson['coverUrl'] ?? '',
+                  audioUrl: songJson['audioUrl'] ?? '',
+                  duration: Duration(seconds: durationSeconds),
+                  isDownloaded: songJson['isDownloaded'] ?? false,
+                  localPath: songJson['localPath'],
+                  genre: songJson['genre'],
+                  popularity: songJson['popularity'],
+                  isPlayable: songJson['isPlayable'] ?? true,
+                  uri: songJson['uri'] ?? '',
+                );
+              }
+              return Song.empty();
+            })
+            .where((song) => song.id.isNotEmpty)
+            .toList();
+      } catch (e) {
+        print('Error parsing songs in playlist JSON: $e');
+      }
+    }
+
     return Playlist(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String?,
-      coverUrl: json['coverUrl'] as String?,
-      songIds:
-          (json['songIds'] as List<dynamic>).map((e) => e as String).toList(),
-      songs: [], // Songs will be populated separately
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      id: id,
+      name: name,
+      description: description,
+      coverUrl: coverUrl,
+      songIds: songIds,
+      songs: songs,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    // Include songs in the JSON to improve restoration from storage
+    final Map<String, dynamic> json = {
       'id': id,
       'name': name,
       'description': description,
@@ -64,6 +110,13 @@ class Playlist {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
+
+    // Only include songs if there are any to avoid empty array
+    if (songs.isNotEmpty) {
+      json['songs'] = songs.map((song) => song.toJson()).toList();
+    }
+
+    return json;
   }
 
   Playlist copyWith({
