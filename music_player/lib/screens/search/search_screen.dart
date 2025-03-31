@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/player_provider.dart';
+import '../../services/connectivity_service.dart';
 import '../../models/song.dart';
 import '../../widgets/song_list_item.dart';
 
@@ -23,6 +24,13 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadRecommendedSongs();
+
+    // Check connectivity
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final connectivityService =
+          Provider.of<ConnectivityService>(context, listen: false);
+      connectivityService.showConnectivitySnackBar(context);
+    });
   }
 
   @override
@@ -61,6 +69,23 @@ class _SearchScreenState extends State<SearchScreen> {
       return _loadRecommendedSongs();
     }
 
+    // Check for connectivity before performing search
+    final connectivityService =
+        Provider.of<ConnectivityService>(context, listen: false);
+    if (!connectivityService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Search requires internet connection. Please connect to the internet.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSearching = true;
       _currentQuery = query;
@@ -84,9 +109,33 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  void _onSongTapped(Song song, BuildContext context) {
+    final PlayerProvider playerProvider =
+        Provider.of<PlayerProvider>(context, listen: false);
+    final ConnectivityService connectivityService =
+        Provider.of<ConnectivityService>(context, listen: false);
+
+    // Check connectivity before playing non-downloaded songs
+    if (!song.isDownloaded && !connectivityService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Cannot play song. You are offline and this song is not downloaded.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Play the song
+    playerProvider.playSong(song);
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final connectivityService = Provider.of<ConnectivityService>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -193,10 +242,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                     child: SongListItem(
                                       song: song,
                                       onTap: () {
-                                        final playerProvider =
-                                            Provider.of<PlayerProvider>(context,
-                                                listen: false);
-                                        playerProvider.playSong(song);
+                                        _onSongTapped(song, context);
                                       },
                                     ),
                                   ),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/library_provider.dart';
+import '../../services/connectivity_service.dart';
 import 'downloads_tab.dart';
 import 'favorites_tab.dart';
 import 'playlists_tab.dart';
+import '../../models/song.dart';
+import '../../providers/player_provider.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -28,6 +31,11 @@ class _LibraryScreenState extends State<LibraryScreen>
       libraryProvider.loadDownloadedSongs();
       libraryProvider.loadFavorites();
       libraryProvider.loadPlaylists();
+
+      // Check connectivity
+      final connectivityService =
+          Provider.of<ConnectivityService>(context, listen: false);
+      connectivityService.showConnectivitySnackBar(context);
     });
   }
 
@@ -40,6 +48,7 @@ class _LibraryScreenState extends State<LibraryScreen>
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final connectivityService = Provider.of<ConnectivityService>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -70,10 +79,10 @@ class _LibraryScreenState extends State<LibraryScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          DownloadsTab(),
-          FavoritesTab(),
-          PlaylistsTab(),
+        children: [
+          DownloadsTab(onSongTapped: _onSongTapped),
+          FavoritesTab(onSongTapped: _onSongTapped),
+          PlaylistsTab(onSongTapped: _onSongTapped),
         ],
       ),
       floatingActionButton: _tabController.index == 2
@@ -176,5 +185,28 @@ class _LibraryScreenState extends State<LibraryScreen>
         }
       }
     }
+  }
+
+  void _onSongTapped(Song song, BuildContext context) {
+    final PlayerProvider playerProvider =
+        Provider.of<PlayerProvider>(context, listen: false);
+    final ConnectivityService connectivityService =
+        Provider.of<ConnectivityService>(context, listen: false);
+
+    // Check connectivity before playing non-downloaded songs
+    if (!song.isDownloaded && !connectivityService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Cannot play song. You are offline and this song is not downloaded.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Play the song
+    playerProvider.playSong(song);
   }
 }

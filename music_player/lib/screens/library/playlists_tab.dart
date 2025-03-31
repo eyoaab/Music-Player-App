@@ -4,9 +4,16 @@ import '../../providers/library_provider.dart';
 import '../../models/playlist.dart';
 import '../../models/song.dart';
 import '../playlist/detail_screen.dart';
+import '../../providers/player_provider.dart';
+import '../../services/connectivity_service.dart';
 
 class PlaylistsTab extends StatelessWidget {
-  const PlaylistsTab({Key? key}) : super(key: key);
+  final Function(Song, BuildContext)? onSongTapped;
+
+  const PlaylistsTab({
+    Key? key,
+    this.onSongTapped,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -330,5 +337,32 @@ class PlaylistsTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _checkConnectivityBeforePlaying(BuildContext context, Song song) {
+    if (onSongTapped != null) {
+      onSongTapped!(song, context);
+    } else {
+      final playerProvider =
+          Provider.of<PlayerProvider>(context, listen: false);
+      final connectivityService =
+          Provider.of<ConnectivityService>(context, listen: false);
+
+      // Check connectivity before playing non-downloaded songs
+      if (!song.isDownloaded && !connectivityService.isConnected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Cannot play song. You are offline and this song is not downloaded.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      // Play the song
+      playerProvider.playSong(song);
+    }
   }
 }

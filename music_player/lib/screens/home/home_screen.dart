@@ -3,11 +3,9 @@ import 'package:provider/provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../../models/song.dart';
+import '../../services/connectivity_service.dart';
 import '../../widgets/song_list_item.dart';
-import '../search/search_screen.dart';
-import '../library/library_screen.dart';
-import '../all_songs/all_songs_screen.dart';
+import '../../models/song.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,13 +24,42 @@ class _HomeScreenState extends State<HomeScreen> {
           Provider.of<LibraryProvider>(context, listen: false);
       libraryProvider.loadTrendingSongs();
       libraryProvider.loadRecentlyPlayed();
+
+      // Check connectivity
+      final connectivityService =
+          Provider.of<ConnectivityService>(context, listen: false);
+      connectivityService.showConnectivitySnackBar(context);
     });
+  }
+
+  void _onSongTapped(Song song, BuildContext context) {
+    final PlayerProvider playerProvider =
+        Provider.of<PlayerProvider>(context, listen: false);
+    final ConnectivityService connectivityService =
+        Provider.of<ConnectivityService>(context, listen: false);
+
+    // Check connectivity before playing non-downloaded songs
+    if (!song.isDownloaded && !connectivityService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Cannot play song. You are offline and this song is not downloaded.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Play the song
+    playerProvider.playSong(song);
   }
 
   @override
   Widget build(BuildContext context) {
     final libraryProvider = Provider.of<LibraryProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final connectivityService = Provider.of<ConnectivityService>(context);
     final isDarkMode = themeProvider.isDarkMode;
     final primaryColor = Theme.of(context).primaryColor;
 
@@ -190,10 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.all(8.0),
                           child: GestureDetector(
                             onTap: () {
-                              // Play the song
-                              Provider.of<PlayerProvider>(context,
-                                      listen: false)
-                                  .playSong(song);
+                              _onSongTapped(song, context);
                             },
                             child: Container(
                               width: 160,
@@ -305,15 +329,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         },
                       );
                     },
-                    child: Text(
-                      'See All',
-                      style: TextStyle(
-                          color: primaryColor, fontWeight: FontWeight.w600),
-                    ),
                     style: TextButton.styleFrom(
                       foregroundColor: primaryColor,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
+                    ),
+                    child: Text(
+                      'See All',
+                      style: TextStyle(
+                          color: primaryColor, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -350,9 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: SongListItem(
                       song: song,
                       onTap: () {
-                        // Play the song
-                        Provider.of<PlayerProvider>(context, listen: false)
-                            .playSong(song);
+                        _onSongTapped(song, context);
                       },
                     ),
                   ),

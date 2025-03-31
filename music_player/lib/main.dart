@@ -16,6 +16,7 @@ import 'providers/library_provider.dart';
 import 'services/deezer_auth_service.dart';
 import 'services/deezer_api_service.dart';
 import 'services/download_service.dart';
+import 'services/connectivity_service.dart';
 
 // Screens
 import 'screens/home/home_screen.dart';
@@ -66,6 +67,7 @@ class MyApp extends StatelessWidget {
     final authService = useAuthentication ? DeezerAuthService() : null;
     final apiService = DeezerApiService(authService);
     final downloadService = DownloadService();
+    final connectivityService = ConnectivityService();
     final libraryProvider = LibraryProvider(
       deezerApiService: apiService,
       downloadService: downloadService,
@@ -90,6 +92,10 @@ class MyApp extends StatelessWidget {
         // Download service - independent
         Provider<DownloadService>.value(value: downloadService),
 
+        // Connectivity service - for monitoring internet connection
+        ChangeNotifierProvider<ConnectivityService>.value(
+            value: connectivityService),
+
         // Library provider - depends on API and download services
         ChangeNotifierProvider<LibraryProvider>.value(value: libraryProvider),
 
@@ -103,7 +109,7 @@ class MyApp extends StatelessWidget {
             return MaterialApp(
               title: 'Eyobifay',
               theme: themeProvider.currentTheme,
-              home: const MainScreen(),
+              home: const ConnectivityWrapper(child: MainScreen()),
               debugShowCheckedModeBanner: false,
               locale: DevicePreview.locale(context),
               builder: DevicePreview.appBuilder,
@@ -114,6 +120,34 @@ class MyApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+// Wrapper widget to monitor connectivity
+class ConnectivityWrapper extends StatefulWidget {
+  final Widget child;
+
+  const ConnectivityWrapper({super.key, required this.child});
+
+  @override
+  State<ConnectivityWrapper> createState() => _ConnectivityWrapperState();
+}
+
+class _ConnectivityWrapperState extends State<ConnectivityWrapper> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check connectivity whenever dependencies change
+    final connectivityService =
+        Provider.of<ConnectivityService>(context, listen: true);
+    Future.delayed(Duration.zero, () {
+      connectivityService.showConnectivitySnackBar(context);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }
 

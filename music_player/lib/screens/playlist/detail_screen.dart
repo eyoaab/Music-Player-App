@@ -7,6 +7,7 @@ import '../../providers/player_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../widgets/song_list_item.dart';
 import 'detail_components.dart';
+import '../../services/connectivity_service.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -110,6 +111,56 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         onPressed: _currentPlaylist.songs.isEmpty
                             ? null
                             : () {
+                                final connectivityService =
+                                    Provider.of<ConnectivityService>(context,
+                                        listen: false);
+
+                                // Check if any non-downloaded songs when offline
+                                if (!connectivityService.isConnected) {
+                                  final hasNonDownloadedSongs = _currentPlaylist
+                                      .songs
+                                      .any((song) => !song.isDownloaded);
+
+                                  if (hasNonDownloadedSongs) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Some songs cannot be played while offline. Only downloaded songs will play.'),
+                                        backgroundColor: Colors.orange,
+                                        duration: Duration(seconds: 3),
+                                      ),
+                                    );
+
+                                    // Only play the downloaded songs
+                                    final downloadedSongs = _currentPlaylist
+                                        .songs
+                                        .where((song) => song.isDownloaded)
+                                        .toList();
+
+                                    if (downloadedSongs.isEmpty) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'No downloaded songs to play. Please download songs or connect to the internet.'),
+                                          backgroundColor: Colors.red,
+                                          duration: Duration(seconds: 3),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    // Create temporary playlist with only downloaded songs
+                                    final tempPlaylist =
+                                        _currentPlaylist.copyWith(
+                                      songs: downloadedSongs,
+                                    );
+                                    playerProvider.playPlaylist(tempPlaylist);
+                                    return;
+                                  }
+                                }
+
+                                // Play the full playlist
                                 log('Playing playlist: ${_currentPlaylist.name} with ${_currentPlaylist.songs.length} songs');
                                 playerProvider.playPlaylist(_currentPlaylist);
                               },
@@ -217,10 +268,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                   },
                                 ),
                                 onTap: () {
-                                  // Start playing from this song in the playlist
-                                  log('Playing song from playlist: ${song.title}');
-                                  playerProvider.playPlaylist(_currentPlaylist,
-                                      initialIndex: index);
+                                  _checkConnectivityBeforePlaying(song);
                                 },
                               );
                             },
@@ -413,5 +461,27 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         );
       },
     );
+  }
+
+  void _checkConnectivityBeforePlaying(Song song) {
+    final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
+    final connectivityService =
+        Provider.of<ConnectivityService>(context, listen: false);
+
+    // Check connectivity before playing non-downloaded songs
+    if (!song.isDownloaded && !connectivityService.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Cannot play song. You are offline and this song is not downloaded.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Play the song
+    playerProvider.playSong(song);
   }
 }

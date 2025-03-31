@@ -146,40 +146,48 @@ class _FullPlayerState extends State<FullPlayer>
                             );
                           },
                         ),
-                        ListTile(
-                          leading: Icon(
-                            song.isDownloaded ? Icons.delete : Icons.download,
-                            color: primaryColor,
-                          ),
-                          title: Text(
-                            song.isDownloaded ? 'Delete download' : 'Download',
-                          ),
-                          onTap: () {
-                            Navigator.pop(context);
-                            if (song.isDownloaded) {
-                              // Delete download
-                              libraryProvider.deleteSongDownload(song.id);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Removed "${song.title}" from downloads'),
-                                  backgroundColor: Colors.grey[800],
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            } else {
-                              // Download song
+                        if (song != null && !song.isDownloaded)
+                          ListTile(
+                            leading: Icon(Icons.download, color: primaryColor),
+                            title: const Text('Download'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Download the song
+                              final libraryProvider =
+                                  Provider.of<LibraryProvider>(context,
+                                      listen: false);
                               libraryProvider.downloadSong(song);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Downloading "${song.title}"'),
-                                  backgroundColor: primaryColor,
+                                  backgroundColor: Colors.green,
                                   duration: const Duration(seconds: 2),
                                 ),
                               );
-                            }
-                          },
-                        ),
+                            },
+                          ),
+                        // If song is already downloaded, show option to delete download
+                        if (song != null && song.isDownloaded)
+                          ListTile(
+                            leading: Icon(Icons.delete, color: primaryColor),
+                            title: const Text('Remove Download'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              // Remove the download
+                              final libraryProvider =
+                                  Provider.of<LibraryProvider>(context,
+                                      listen: false);
+                              libraryProvider.deleteSongDownload(song.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Removed download for "${song.title}"'),
+                                  backgroundColor: Colors.orange,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   );
@@ -293,16 +301,32 @@ class _FullPlayerState extends State<FullPlayer>
                   SizedBox(height: isSmallScreen ? 25 : 40),
 
                   // Song info
-                  Text(
-                    song.title,
-                    style: TextStyle(
-                      fontSize: isSmallScreen ? 20 : 24,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          song?.title ?? 'No song playing',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (song != null && song.isDownloaded)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: Icon(
+                            Icons.download_done,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(

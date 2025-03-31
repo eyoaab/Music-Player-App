@@ -5,7 +5,9 @@ import '../../providers/player_provider.dart';
 import '../../models/song.dart';
 
 class DownloadsTab extends StatefulWidget {
-  const DownloadsTab({Key? key}) : super(key: key);
+  final Function(Song, BuildContext)? onSongTapped;
+
+  const DownloadsTab({Key? key, this.onSongTapped}) : super(key: key);
 
   @override
   State<DownloadsTab> createState() => _DownloadsTabState();
@@ -338,7 +340,13 @@ class _DownloadsTabState extends State<DownloadsTab> {
             ),
           ],
         ),
-        onTap: () => playerProvider.playSong(song),
+        onTap: () {
+          if (widget.onSongTapped != null) {
+            widget.onSongTapped!(song, context);
+          } else {
+            playerProvider.playSong(song);
+          }
+        },
       ),
     );
   }

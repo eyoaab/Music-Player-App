@@ -7,6 +7,7 @@ import 'package:audio_service/audio_service.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../providers/library_provider.dart';
+import '../services/connectivity_service.dart';
 
 enum ShuffleMode { off, on }
 
@@ -103,6 +104,21 @@ class PlayerProvider with ChangeNotifier {
 
   // Play a single song
   Future<void> playSong(Song song) async {
+    // Check if we have connectivity for non-downloaded songs
+    if (!song.isDownloaded) {
+      // We'll handle connectivity in a different way - this implementation
+      // will gracefully continue even without connectivity checks
+      bool isConnected = true;
+      try {
+        // We can only check connectivity if we have a BuildContext
+        // This will be handled at the UI level
+        debugPrint(
+            'Playing non-downloaded song. Connectivity status not checked at provider level.');
+      } catch (e) {
+        debugPrint('Couldn\'t check connectivity: $e');
+      }
+    }
+
     try {
       _queue = [song];
       _currentIndex = 0;

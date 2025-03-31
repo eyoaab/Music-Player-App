@@ -4,6 +4,7 @@ import '../../providers/library_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../models/song.dart';
 import '../../widgets/song_list_item.dart';
+import '../../services/connectivity_service.dart';
 
 class AllSongsScreen extends StatelessWidget {
   final String title;
@@ -67,6 +68,24 @@ class AllSongsScreen extends StatelessWidget {
                     onTap: () {
                       final playerProvider =
                           Provider.of<PlayerProvider>(context, listen: false);
+                      final connectivityService =
+                          Provider.of<ConnectivityService>(context,
+                              listen: false);
+
+                      // Check connectivity before playing non-downloaded songs
+                      if (!song.isDownloaded &&
+                          !connectivityService.isConnected) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Cannot play song. You are offline and this song is not downloaded.'),
+                            backgroundColor: Colors.red,
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                        return;
+                      }
+
                       // Play the selected song
                       playerProvider.playSong(song);
                     },

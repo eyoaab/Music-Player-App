@@ -3,9 +3,15 @@ import 'package:provider/provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/player_provider.dart';
 import '../../widgets/song_list_item.dart';
+import '../../models/song.dart';
 
 class FavoritesTab extends StatelessWidget {
-  const FavoritesTab({Key? key}) : super(key: key);
+  final Function(Song, BuildContext) onSongTapped;
+
+  const FavoritesTab({
+    super.key,
+    required this.onSongTapped,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +30,7 @@ class FavoritesTab extends StatelessWidget {
                     final song = libraryProvider.favoriteSongs[index];
                     return SongListItem(
                       song: song,
-                      onTap: () => playerProvider.playSong(song),
+                      onTap: () => onSongTapped(song, context),
                     );
                   },
                 ),
