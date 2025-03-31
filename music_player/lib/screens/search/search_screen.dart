@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/library_provider.dart';
-import '../providers/player_provider.dart';
-import '../models/song.dart';
-import '../widgets/song_list_item.dart';
+import '../../providers/library_provider.dart';
+import '../../providers/player_provider.dart';
+import '../../models/song.dart';
+import '../../widgets/song_list_item.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});

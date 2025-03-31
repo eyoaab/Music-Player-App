@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/song.dart';
-import '../providers/library_provider.dart';
-import '../models/playlist.dart';
+import '../../models/song.dart';
+import '../../models/playlist.dart';
+import '../../providers/library_provider.dart';
 
 class AddToPlaylistScreen extends StatefulWidget {
   final Song song;

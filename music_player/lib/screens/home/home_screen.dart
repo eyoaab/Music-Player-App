@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/library_provider.dart';
-import '../providers/player_provider.dart';
-import '../providers/theme_provider.dart';
-import '../widgets/song_list_item.dart';
-import '../models/song.dart';
-import '../screens/all_songs_screen.dart';
+import '../../providers/library_provider.dart';
+import '../../providers/player_provider.dart';
+import '../../providers/theme_provider.dart';
+import '../../models/song.dart';
+import '../../widgets/song_list_item.dart';
+import '../search/search_screen.dart';
+import '../library/library_screen.dart';
+import '../all_songs/all_songs_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -117,16 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     TextButton.icon(
                       onPressed: () {
                         // Navigate to all trending songs view
-                        Navigator.push(
+                        Navigator.pushNamed(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => AllSongsScreen(
-                              title: 'Trending Songs',
-                              songs: libraryProvider.trendingSongs,
-                              isTrending: true,
-                              isRecentlyPlayed: false,
-                            ),
-                          ),
+                          '/songs/all',
+                          arguments: {
+                            'title': 'Trending Songs',
+                            'songs': libraryProvider.trendingSongs,
+                            'isTrending': true,
+                            'isRecentlyPlayed': false,
+                          },
                         );
                       },
                       icon: const Icon(Icons.arrow_forward),
@@ -206,16 +207,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     TextButton(
                       onPressed: () {
                         // Navigate to all recently played songs view
-                        Navigator.push(
+                        Navigator.pushNamed(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => AllSongsScreen(
-                              title: 'Recently Played',
-                              songs: libraryProvider.recentlyPlayedSongs,
-                              isTrending: false,
-                              isRecentlyPlayed: true,
-                            ),
-                          ),
+                          '/songs/all',
+                          arguments: {
+                            'title': 'Recently Played',
+                            'songs': libraryProvider.recentlyPlayedSongs,
+                            'isTrending': false,
+                            'isRecentlyPlayed': true,
+                          },
                         );
                       },
                       child: Text(

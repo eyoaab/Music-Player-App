@@ -1,12 +1,12 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/playlist.dart';
-import '../models/song.dart';
-import '../providers/player_provider.dart';
-import '../providers/library_provider.dart';
-import '../widgets/song_list_item.dart';
-import 'playlist_detail_components.dart';
+import '../../models/playlist.dart';
+import '../../models/song.dart';
+import '../../providers/player_provider.dart';
+import '../../providers/library_provider.dart';
+import '../../widgets/song_list_item.dart';
+import 'detail_components.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;

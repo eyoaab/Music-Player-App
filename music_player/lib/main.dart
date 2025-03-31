@@ -2,16 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// Configuration
 import 'constants/deezer_config.dart';
+import 'routes.dart';
+
+// Providers
 import 'providers/theme_provider.dart';
 import 'providers/player_provider.dart';
 import 'providers/library_provider.dart';
+
+// Services
 import 'services/deezer_auth_service.dart';
 import 'services/deezer_api_service.dart';
 import 'services/download_service.dart';
-import 'screens/home_screen.dart';
-import 'screens/search_screen.dart';
-import 'screens/library_screen.dart';
+
+// Screens
+import 'screens/home/home_screen.dart';
+import 'screens/search/search_screen.dart';
+import 'screens/library/library_screen.dart';
+
+// Widgets
 import 'widgets/player/mini_player.dart';
 import 'widgets/player/full_player.dart';
 
@@ -96,6 +107,8 @@ class MyApp extends StatelessWidget {
               debugShowCheckedModeBanner: false,
               locale: DevicePreview.locale(context),
               builder: DevicePreview.appBuilder,
+              onGenerateRoute: AppRoutes.generateRoute,
+              initialRoute: '/',
             );
           },
         ),
