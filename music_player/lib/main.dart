@@ -175,24 +175,27 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),
             label: 'Home',
-            backgroundColor: primaryColor,
+            backgroundColor:
+                Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.search),
             label: 'Search',
-            backgroundColor: primaryColor,
+            backgroundColor:
+                Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.library_music),
             label: 'Library',
-            backgroundColor: primaryColor,
+            backgroundColor:
+                Theme.of(context).bottomNavigationBarTheme.backgroundColor,
           ),
         ],
-        elevation: 8,
-        selectedItemColor: Colors.black87,
-        unselectedItemColor: Colors.black54,
-        backgroundColor: primaryColor,
+        selectedItemColor: primaryColor,
+        unselectedItemColor: isDarkMode ? Colors.white70 : Colors.black54,
+        showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
+        elevation: 8,
       ),
     );
   }

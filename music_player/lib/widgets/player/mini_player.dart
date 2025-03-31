@@ -22,14 +22,20 @@ class MiniPlayer extends StatelessWidget {
     return Container(
       height: 70,
       decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[900] : primaryColor.withOpacity(0.9),
+        color: isDarkMode ? Color(0xFF252525) : primaryColor.withOpacity(0.1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: primaryColor.withOpacity(isDarkMode ? 0.2 : 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
         ],
+        border: Border(
+          top: BorderSide(
+            color: primaryColor.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
       ),
       child: Row(
         children: [
@@ -42,17 +48,17 @@ class MiniPlayer extends StatelessWidget {
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
+                      color: primaryColor.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(12),
                   child: CachedNetworkImage(
                     imageUrl: song.coverUrl,
                     fit: BoxFit.cover,
@@ -95,6 +101,7 @@ class MiniPlayer extends StatelessWidget {
                       color: isDarkMode ? Colors.white : Colors.black87,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
+                      letterSpacing: 0.3,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -103,8 +110,11 @@ class MiniPlayer extends StatelessWidget {
                   Text(
                     song.artist,
                     style: TextStyle(
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                      color: isDarkMode
+                          ? Colors.white70
+                          : primaryColor.withOpacity(0.8),
                       fontSize: 14,
+                      letterSpacing: 0.2,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -131,7 +141,7 @@ class MiniPlayer extends StatelessWidget {
                   value: progress,
                   backgroundColor: isDarkMode ? Colors.white12 : Colors.black12,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isDarkMode ? Colors.white : Colors.black87,
+                    primaryColor,
                   ),
                   minHeight: 2,
                 );
@@ -143,7 +153,7 @@ class MiniPlayer extends StatelessWidget {
           IconButton(
             icon: Icon(
               playerProvider.isPlaying ? Icons.pause : Icons.play_arrow,
-              color: isDarkMode ? Colors.white : Colors.black87,
+              color: primaryColor,
             ),
             onPressed: () {
               playerProvider.playPause();

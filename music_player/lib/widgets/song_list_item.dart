@@ -1,10 +1,7 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../providers/library_provider.dart';
-import '../screens/playlist/add_to_playlist_screen.dart';
 
 class SongListItem extends StatelessWidget {
   final Song song;

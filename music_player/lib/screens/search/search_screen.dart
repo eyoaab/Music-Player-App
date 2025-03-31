@@ -86,6 +86,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
@@ -100,10 +102,10 @@ class _SearchScreenState extends State<SearchScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search songs, artists...',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: Icon(Icons.search, color: primaryColor),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: Icon(Icons.clear, color: primaryColor),
                         onPressed: () {
                           _searchController.clear();
                           _loadRecommendedSongs();
@@ -112,7 +114,18 @@ class _SearchScreenState extends State<SearchScreen> {
                     : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: primaryColor, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide(color: primaryColor.withOpacity(0.3)),
+                ),
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                filled: true,
               ),
               onSubmitted: _performSearch,
               textInputAction: TextInputAction.search,
@@ -147,7 +160,13 @@ class _SearchScreenState extends State<SearchScreen> {
                               _currentQuery.isEmpty
                                   ? 'Recommended for you'
                                   : 'Results for "$_currentQuery"',
-                              style: Theme.of(context).textTheme.titleLarge,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
                             ),
                           ),
 
@@ -158,14 +177,29 @@ class _SearchScreenState extends State<SearchScreen> {
                               itemCount: _searchResults.length,
                               itemBuilder: (context, index) {
                                 final song = _searchResults[index];
-                                return SongListItem(
-                                  song: song,
-                                  onTap: () {
-                                    final playerProvider =
-                                        Provider.of<PlayerProvider>(context,
-                                            listen: false);
-                                    playerProvider.playSong(song);
-                                  },
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0, vertical: 4.0),
+                                  child: Card(
+                                    elevation: 2,
+                                    shadowColor: primaryColor.withOpacity(0.2),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: primaryColor.withOpacity(0.1),
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: SongListItem(
+                                      song: song,
+                                      onTap: () {
+                                        final playerProvider =
+                                            Provider.of<PlayerProvider>(context,
+                                                listen: false);
+                                        playerProvider.playSong(song);
+                                      },
+                                    ),
+                                  ),
                                 );
                               },
                             ),

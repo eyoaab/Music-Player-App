@@ -5,6 +5,7 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/player_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/library_provider.dart';
 
 class FullPlayer extends StatefulWidget {
   final VoidCallback onClose;
@@ -59,6 +60,9 @@ class _FullPlayerState extends State<FullPlayer>
     final isDarkMode = themeProvider.isDarkMode;
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.height < 700;
+    final libraryProvider = Provider.of<LibraryProvider>(context);
+    final isFavorite =
+        song != null ? libraryProvider.isFavorite(song.id) : false;
 
     if (song == null) {
       return const SizedBox.shrink();
@@ -86,6 +90,8 @@ class _FullPlayerState extends State<FullPlayer>
             color: isDarkMode ? Colors.white : Colors.black87,
             onPressed: () {
               // Show options menu (add to playlist, etc.)
+              if (song == null) return;
+
               showModalBottomSheet(
                 context: context,
                 shape: const RoundedRectangleBorder(
@@ -103,16 +109,41 @@ class _FullPlayerState extends State<FullPlayer>
                           title: const Text('Add to playlist'),
                           onTap: () {
                             Navigator.pop(context);
-                            // Implement add to playlist
+                            // Navigate to add to playlist screen
+                            Navigator.pushNamed(
+                              context,
+                              '/playlist/add',
+                              arguments: song,
+                            );
                           },
                         ),
                         ListTile(
-                          leading:
-                              Icon(Icons.favorite_border, color: primaryColor),
-                          title: const Text('Add to favorites'),
+                          leading: Icon(
+                              isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isFavorite ? Colors.red : primaryColor),
+                          title: Text(isFavorite
+                              ? 'Remove from favorites'
+                              : 'Add to favorites'),
                           onTap: () {
                             Navigator.pop(context);
-                            // Implement add to favorites
+                            // Toggle favorite status
+                            libraryProvider.toggleFavorite(song);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isFavorite
+                                      ? 'Removed from favorites'
+                                      : 'Added to favorites',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: isFavorite
+                                    ? Colors.grey[800]
+                                    : primaryColor,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
                           },
                         ),
                         ListTile(
@@ -125,7 +156,28 @@ class _FullPlayerState extends State<FullPlayer>
                           ),
                           onTap: () {
                             Navigator.pop(context);
-                            // Implement download/delete
+                            if (song.isDownloaded) {
+                              // Delete download
+                              libraryProvider.deleteSongDownload(song.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Removed "${song.title}" from downloads'),
+                                  backgroundColor: Colors.grey[800],
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            } else {
+                              // Download song
+                              libraryProvider.downloadSong(song);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Downloading "${song.title}"'),
+                                  backgroundColor: primaryColor,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           },
                         ),
                       ],
