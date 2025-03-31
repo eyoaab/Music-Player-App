@@ -52,7 +52,7 @@ dependencies:
   sqflite: ^2.3.2
 
   # UI components
-  flutter_launcher_icons: ^0.13.1
+  # flutter_launcher_icons: ^0.13.1
   cached_network_image: ^3.3.1
   audio_video_progress_bar: ^2.0.1
   flutter_svg: ^2.0.9
@@ -63,11 +63,6 @@ dependencies:
 
   # Device preview for testing on different devices
   device_preview: ^1.1.0
-
-  # Spotify integration
-  spotify_sdk: ^3.0.2
-  flutter_web_auth: ^0.4.1
-  url_launcher: ^6.1.14
 
   # Secure environment variables
   flutter_dotenv: ^5.1.0
@@ -82,6 +77,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
+
+# flutter_icons:
+#   android: true
+#   ios: true
+#   image_path: "assets/images/app_icon.png"
+#   adaptive_icon_background: "#FFFFFF"
+#   adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

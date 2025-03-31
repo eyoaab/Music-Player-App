@@ -19,22 +19,6 @@ class DeezerApiService {
     _dio.options.baseUrl = DeezerConfig.apiBaseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 20);
     _dio.options.receiveTimeout = const Duration(seconds: 20);
-
-    // Add auth interceptor only if auth service is provided
-    if (_authService != null) {
-      _dio.interceptors.add(InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          // Only add token to requests if user is authenticated
-          if (_authService!.isAuthenticated) {
-            final token = await _authService!.getAccessToken();
-            if (token != null) {
-              options.queryParameters['access_token'] = token;
-            }
-          }
-          return handler.next(options);
-        },
-      ));
-    }
   }
 
   /// Check if user-specific features are available (requires auth)
