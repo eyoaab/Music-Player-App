@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:device_preview/device_preview.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Configuration
@@ -102,22 +101,17 @@ class MyApp extends StatelessWidget {
         // Player provider - connected to library provider
         ChangeNotifierProvider<PlayerProvider>.value(value: playerProvider),
       ],
-      child: DevicePreview(
-        enabled: true, // Device preview enabled for testing
-        builder: (context) => Consumer<ThemeProvider>(
-          builder: (context, themeProvider, child) {
-            return MaterialApp(
-              title: 'Eyobifay',
-              theme: themeProvider.currentTheme,
-              home: const ConnectivityWrapper(child: MainScreen()),
-              debugShowCheckedModeBanner: false,
-              locale: DevicePreview.locale(context),
-              builder: DevicePreview.appBuilder,
-              onGenerateRoute: AppRoutes.generateRoute,
-              initialRoute: '/',
-            );
-          },
-        ),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Eyobifay',
+            theme: themeProvider.currentTheme,
+            home: const ConnectivityWrapper(child: MainScreen()),
+            debugShowCheckedModeBanner: false,
+            onGenerateRoute: AppRoutes.generateRoute,
+            initialRoute: '/',
+          );
+        },
       ),
     );
   }

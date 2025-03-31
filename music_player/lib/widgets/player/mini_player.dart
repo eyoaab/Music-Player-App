@@ -111,8 +111,8 @@ class MiniPlayer extends StatelessWidget {
                         ),
                       ),
                       if (song.isDownloaded)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4.0),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4.0),
                           child: Icon(
                             Icons.download_done,
                             color: Colors.green,
