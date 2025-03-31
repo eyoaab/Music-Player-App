@@ -57,7 +57,7 @@ A modern music player app built with Flutter that supports online streaming and 
 1. Clone this repository
 
 ```bash
-git clone https://github.com/yourusername/music_player.git
+git clone https://github.com/eyoaab/Music-Player-App.git
 ```
 
 2. Navigate to the project directory
@@ -111,15 +111,6 @@ The app follows a clean architecture approach:
 - **Providers:** State management
 - **Screens:** UI components
 - **Widgets:** Reusable UI elements
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- [Deezer API](https://developers.deezer.com/) for providing music access
-- [Flutter](https://flutter.dev) and its amazing community
 
 ## Implementation Details
 
@@ -262,12 +253,3 @@ To thoroughly test the app:
    - Test mini and full player controls
    - Verify shuffle and repeat modes work correctly
    - Test seeking through songs with the progress bar
-
-### Next Steps for Improvement
-
-1. **User Authentication**: Enhanced login/signup functionality
-2. **Cloud Sync**: Sync playlists and favorites across devices
-3. **Equalizer**: Add audio equalization controls
-4. **Improved Search**: Add voice search and search history
-5. **Social Features**: Share songs and playlists with friends
-6. **Analytics**: Track user listening habits and provide recommendations
