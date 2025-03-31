@@ -177,8 +177,15 @@ class LibraryProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Load songs from local storage with their full metadata
       final songs = await _downloadService.getDownloadedSongs();
       _downloadedSongs = songs;
+
+      // Log information about loaded songs
+      debugPrint('Loaded ${_downloadedSongs.length} downloaded songs');
+
+      // Save history of downloaded song IDs
+      await _saveDownloadedSongHistory();
     } catch (e) {
       debugPrint('Error loading downloaded songs: $e');
     } finally {
@@ -197,6 +204,10 @@ class LibraryProvider with ChangeNotifier {
       final downloadedSong = await _downloadService.downloadSong(song);
       if (downloadedSong != null) {
         _downloadedSongs.add(downloadedSong);
+
+        // Save history of downloaded song IDs
+        await _saveDownloadedSongHistory();
+
         notifyListeners();
       }
     } catch (e) {
@@ -210,10 +221,26 @@ class LibraryProvider with ChangeNotifier {
       final song = _downloadedSongs.firstWhere((s) => s.id == songId);
       await _downloadService.deleteSongFile(song);
       _downloadedSongs.removeWhere((s) => s.id == songId);
+
+      // Save history of downloaded song IDs
+      await _saveDownloadedSongHistory();
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error deleting song download: $e');
       rethrow;
+    }
+  }
+
+  // Save history of downloaded song IDs
+  Future<void> _saveDownloadedSongHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final songIds = _downloadedSongs.map((song) => song.id).toList();
+      await prefs.setStringList('downloaded_song_ids', songIds);
+      debugPrint('Saved history of ${songIds.length} downloaded songs');
+    } catch (e) {
+      debugPrint('Error saving downloaded song history: $e');
     }
   }
 

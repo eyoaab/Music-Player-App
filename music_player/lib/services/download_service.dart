@@ -1,12 +1,17 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 
 class DownloadService {
   final Dio _dio = Dio();
+
+  // Key for song metadata in SharedPreferences
+  static const String _downloadedSongsMetadataKey = 'downloaded_songs_metadata';
 
   Future<bool> checkStoragePermission() async {
     // Skip permission check on web
@@ -44,8 +49,12 @@ class DownloadService {
       // For web, we can't download files to local storage in the same way
       if (kIsWeb) {
         // For web, we'll just mark the song as "downloaded" without actual file storage
-        return song.copyWith(
+        final downloadedSong = song.copyWith(
             isDownloaded: true, localPath: '/web_storage/${song.id}.mp3');
+
+        // Save metadata even for web to demonstrate functionality
+        await _saveSongMetadata(downloadedSong);
+        return downloadedSong;
       }
 
       final hasPermission = await checkStoragePermission();
@@ -60,7 +69,10 @@ class DownloadService {
       final file = File(filePath);
       if (await file.exists()) {
         // Song already downloaded
-        return song.copyWith(isDownloaded: true, localPath: filePath);
+        final downloadedSong =
+            song.copyWith(isDownloaded: true, localPath: filePath);
+        await _saveSongMetadata(downloadedSong);
+        return downloadedSong;
       }
 
       await _dio.download(
@@ -77,7 +89,11 @@ class DownloadService {
 
       // Verify the file was downloaded successfully
       if (await file.exists()) {
-        return song.copyWith(isDownloaded: true, localPath: filePath);
+        final downloadedSong =
+            song.copyWith(isDownloaded: true, localPath: filePath);
+        // Save metadata to SharedPreferences
+        await _saveSongMetadata(downloadedSong);
+        return downloadedSong;
       } else {
         throw Exception('Failed to download file');
       }
@@ -87,10 +103,53 @@ class DownloadService {
     }
   }
 
+  // Save song metadata to SharedPreferences
+  Future<void> _saveSongMetadata(Song song) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Get current metadata
+      final jsonString = prefs.getString(_downloadedSongsMetadataKey) ?? '{}';
+      final Map<String, dynamic> metadata = json.decode(jsonString);
+
+      // Add or update this song's metadata
+      metadata[song.id] = song.toJson();
+
+      // Save back to SharedPreferences
+      await prefs.setString(_downloadedSongsMetadataKey, json.encode(metadata));
+
+      print('Saved metadata for song: ${song.title}');
+    } catch (e) {
+      print('Error saving song metadata: $e');
+    }
+  }
+
+  // Remove song metadata from SharedPreferences
+  Future<void> _removeSongMetadata(String songId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Get current metadata
+      final jsonString = prefs.getString(_downloadedSongsMetadataKey) ?? '{}';
+      final Map<String, dynamic> metadata = json.decode(jsonString);
+
+      // Remove this song's metadata
+      metadata.remove(songId);
+
+      // Save back to SharedPreferences
+      await prefs.setString(_downloadedSongsMetadataKey, json.encode(metadata));
+
+      print('Removed metadata for song ID: $songId');
+    } catch (e) {
+      print('Error removing song metadata: $e');
+    }
+  }
+
   Future<bool> deleteSongFile(Song song) async {
     try {
       if (kIsWeb) {
         // For web, we just mark it as not downloaded
+        await _removeSongMetadata(song.id);
         return true;
       }
 
@@ -101,6 +160,8 @@ class DownloadService {
       final file = File(song.localPath!);
       if (await file.exists()) {
         await file.delete();
+        // Remove metadata from SharedPreferences
+        await _removeSongMetadata(song.id);
         return true;
       }
       return false;
@@ -115,7 +176,12 @@ class DownloadService {
 
   Future<List<Song>> getDownloadedSongs() async {
     if (kIsWeb) {
-      // For web, we'll return some mock songs for demo purposes
+      // For web, we'll still use metadata if available
+      final metadata = await _getSongMetadataMap();
+      if (metadata.isNotEmpty) {
+        return metadata.values.toList();
+      }
+      // Fall back to mock data if no metadata
       return _getMockDownloadedSongs();
     }
 
@@ -126,16 +192,32 @@ class DownloadService {
       return [];
     }
 
+    // Get all MP3 files in the directory
     final files = await dir.list().toList();
+    final mp3Files = files
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.mp3'))
+        .toList();
+
+    // Get metadata map
+    final metadataMap = await _getSongMetadataMap();
+
     final List<Song> downloadedSongs = [];
 
-    for (var file in files.whereType<File>()) {
-      if (file.path.endsWith('.mp3')) {
-        final fileName = file.path.split('/').last;
-        final songId = fileName.replaceAll('.mp3', '');
+    for (var file in mp3Files) {
+      final fileName = file.path.split('/').last;
+      final songId = fileName.replaceAll('.mp3', '');
 
-        // Create a basic song object with the ID and local path
-        // The app should obtain full song details from another source
+      if (metadataMap.containsKey(songId)) {
+        // We have metadata for this song
+        final song = metadataMap[songId]!.copyWith(
+          isDownloaded: true,
+          localPath: file.path,
+          uri: 'file://${file.path}',
+        );
+        downloadedSongs.add(song);
+      } else {
+        // No metadata, create basic song object
         downloadedSongs.add(Song(
           id: songId,
           title: 'Downloaded Song $songId',
@@ -151,38 +233,85 @@ class DownloadService {
       }
     }
 
+    // Verify that all songs in metadata actually have files
+    // If not, they may have been deleted outside the app
+    if (downloadedSongs.length != metadataMap.length) {
+      // Clean up metadata for songs that don't have files
+      await _cleanupOrphanedMetadata(mp3Files
+          .map((f) => f.path.split('/').last.replaceAll('.mp3', ''))
+          .toSet());
+    }
+
     return downloadedSongs;
   }
 
-  // For backward compatibility
-  Future<List<Song>> getDownloadedSongs_old(List<Song> allSongs) async {
-    if (kIsWeb) {
-      // For web, we'll return some mock songs for demo purposes
-      return _getMockDownloadedSongs();
+  // Get metadata for all downloaded songs
+  Future<Map<String, Song>> _getSongMetadataMap() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_downloadedSongsMetadataKey) ?? '{}';
+      final Map<String, dynamic> metadata = json.decode(jsonString);
+
+      // Convert from raw JSON to Song objects
+      final Map<String, Song> songMap = {};
+
+      metadata.forEach((id, songJson) {
+        final Map<String, dynamic> songData = songJson;
+        final durationSeconds = songData['duration'] as int? ?? 0;
+
+        final song = Song(
+          id: songData['id'] ?? '',
+          title: songData['title'] ?? '',
+          artist: songData['artist'] ?? '',
+          artistId: songData['artistId'] ?? '',
+          album: songData['album'] ?? '',
+          albumId: songData['albumId'] ?? '',
+          coverUrl: songData['coverUrl'] ?? '',
+          audioUrl: songData['audioUrl'] ?? '',
+          duration: Duration(seconds: durationSeconds),
+          isDownloaded: songData['isDownloaded'] ?? false,
+          localPath: songData['localPath'],
+          genre: songData['genre'],
+          popularity: songData['popularity'],
+          isPlayable: songData['isPlayable'] ?? true,
+          uri: songData['uri'] ?? '',
+        );
+
+        songMap[id] = song;
+      });
+
+      return songMap;
+    } catch (e) {
+      print('Error getting song metadata: $e');
+      return {};
     }
+  }
 
-    final savePath = await _localPath;
-    final dir = Directory(savePath);
+  // Remove metadata for songs that don't have files anymore
+  Future<void> _cleanupOrphanedMetadata(Set<String> existingSongIds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_downloadedSongsMetadataKey) ?? '{}';
+      final Map<String, dynamic> metadata = json.decode(jsonString);
 
-    if (!await dir.exists()) {
-      return [];
+      // Get the list of IDs to remove
+      final idsToRemove =
+          metadata.keys.where((id) => !existingSongIds.contains(id)).toList();
+
+      // If there are orphaned metadata entries, remove them
+      if (idsToRemove.isNotEmpty) {
+        for (final id in idsToRemove) {
+          metadata.remove(id);
+        }
+
+        // Save the updated metadata
+        await prefs.setString(
+            _downloadedSongsMetadataKey, json.encode(metadata));
+        print('Removed ${idsToRemove.length} orphaned metadata entries');
+      }
+    } catch (e) {
+      print('Error cleaning up orphaned metadata: $e');
     }
-
-    final files = await dir.list().toList();
-    final downloadedSongIds = files
-        .whereType<File>()
-        .where((file) => file.path.endsWith('.mp3'))
-        .map((file) {
-      final fileName = file.path.split('/').last;
-      return fileName.replaceAll('.mp3', '');
-    }).toSet();
-
-    return allSongs
-        .where((song) => downloadedSongIds.contains(song.id))
-        .map((song) {
-      final localPath = '$savePath/${song.id}.mp3';
-      return song.copyWith(isDownloaded: true, localPath: localPath);
-    }).toList();
   }
 
   List<Song> _getMockDownloadedSongs() {

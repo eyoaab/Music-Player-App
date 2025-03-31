@@ -213,29 +213,15 @@ class PlayerProvider with ChangeNotifier {
           if (_repeatMode == RepeatMode.all) {
             nextIndex = 0;
           } else {
-            // End of queue and no repeat - stop playback
-            await _audioPlayer.stop();
-            _currentIndex = -1;
-            _currentSong = null;
-            notifyListeners();
+            // End of queue
             return;
           }
         }
       }
 
-      _currentIndex = nextIndex;
-      _currentSong = _queue[_currentIndex];
-
-      await _loadAndPlaySong(_currentSong!);
-
-      // Add to recently played if library provider is available
-      if (_libraryProvider != null && _currentSong != null) {
-        await _libraryProvider!.addToRecentlyPlayed(_currentSong!);
-      }
-
-      notifyListeners();
+      await _playAtIndex(nextIndex);
     } catch (e) {
-      print('Error skipping to next: $e');
+      print('Error skipping to next song: $e');
     }
   }
 
@@ -244,44 +230,40 @@ class PlayerProvider with ChangeNotifier {
     try {
       if (_queue.isEmpty || _currentIndex < 0) return;
 
-      // If we're more than 3 seconds into the song, go back to the start
-      if (_audioPlayer.position > const Duration(seconds: 3)) {
+      // If we're 3 seconds into the song or less, go to previous song
+      // Otherwise, restart the current song
+      final position = _audioPlayer.position;
+      if (position.inSeconds > 3) {
+        // Restart current song
         await _audioPlayer.seek(Duration.zero);
+        await _audioPlayer.play();
         return;
       }
 
+      // Go to previous song
       int prevIndex;
-
       if (_isShuffleEnabled) {
-        // Improved randomization for shuffle mode
-        if (_queue.length > 1) {
-          // Use a more robust random number generation
-          final random = Random();
-          int randomIndex;
-          do {
-            randomIndex = random.nextInt(_queue.length);
-          } while (randomIndex == _currentIndex);
-          prevIndex = randomIndex;
-        } else {
-          prevIndex = 0;
-        }
+        // In shuffle mode, we should ideally have a history stack
+        // For simplicity, we'll just go back one in the shuffled queue
+        prevIndex = (_currentIndex - 1) % _queue.length;
       } else {
-        // Normal previous song
-        prevIndex = _currentIndex - 1;
-
-        // Handle repeat modes
-        if (prevIndex < 0) {
-          if (_repeatMode == RepeatMode.all) {
-            prevIndex = _queue.length - 1;
-          } else {
-            // Start of queue - restart current song
-            await _audioPlayer.seek(Duration.zero);
-            return;
-          }
-        }
+        prevIndex = (_currentIndex - 1) % _queue.length;
       }
 
-      _currentIndex = prevIndex;
+      if (prevIndex < 0) prevIndex = _queue.length - 1;
+
+      await _playAtIndex(prevIndex);
+    } catch (e) {
+      print('Error skipping to previous song: $e');
+    }
+  }
+
+  // Play a song at a specific index in the queue
+  Future<void> _playAtIndex(int index) async {
+    try {
+      if (index < 0 || index >= _queue.length) return;
+
+      _currentIndex = index;
       _currentSong = _queue[_currentIndex];
 
       await _loadAndPlaySong(_currentSong!);
@@ -293,7 +275,7 @@ class PlayerProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error skipping to previous: $e');
+      print('Error playing at index $index: $e');
     }
   }
 
@@ -358,4 +340,28 @@ class PlayerProvider with ChangeNotifier {
 
   // Get current position
   Duration get position => _audioPlayer.position;
+
+  // Add a song to the queue
+  Future<void> addToQueue(Song song) async {
+    try {
+      // Add to the end of the queue
+      _queue.add(song);
+
+      // If the queue was empty, start playing
+      if (_currentSong == null) {
+        _currentIndex = 0;
+        _currentSong = song;
+        await _loadAndPlaySong(song);
+
+        // Add to recently played if library provider is available
+        if (_libraryProvider != null) {
+          await _libraryProvider!.addToRecentlyPlayed(song);
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      print('Error adding song to queue: $e');
+    }
+  }
 }
