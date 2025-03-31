@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: Padding(
                 padding: const EdgeInsets.only(left: 16.0),
                 child: Text(
-                  'Muaic Player',
+                  'Eyobifay',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: primaryColor,
@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Welcome to your',
+                    'Welcome to ',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Music Collection',
+                    'Eyobifay',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: primaryColor,

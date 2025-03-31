@@ -101,7 +101,7 @@ class MyApp extends StatelessWidget {
         builder: (context) => Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return MaterialApp(
-              title: 'Music Player',
+              title: 'Eyobifay',
               theme: themeProvider.currentTheme,
               home: const MainScreen(),
               debugShowCheckedModeBanner: false,
