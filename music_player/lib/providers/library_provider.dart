@@ -80,17 +80,17 @@ class LibraryProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kIsWeb) {
-        // For web demo, load mock favorites from local storage
-        await _loadFavoritesFromStorage();
-      } else {
-        // For real devices, get user's favorite tracks from Deezer
-        final songs = await _deezerApiService.getUserFavoriteTracks();
-        _favoriteSongs = songs;
+      await _loadFavoritesFromStorage();
+      // if (kIsWeb) {
+      //   // For web demo, load mock favorites from local storage
+      // } else {
+      //   // For real devices, get user's favorite tracks from Deezer
+      //   final songs = await _deezerApiService.getUserFavoriteTracks();
+      //   _favoriteSongs = songs;
 
-        // Save to local storage
-        await _saveFavoritesToStorage();
-      }
+      //   // Save to local storage
+      //   await _saveFavoritesToStorage();
+      // }
     } catch (e) {
       debugPrint('Error loading favorite songs: $e');
     } finally {

@@ -237,17 +237,4 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-
-  String _getScreenTitle() {
-    switch (_currentIndex) {
-      case 0:
-        return 'Home';
-      case 1:
-        return 'Search';
-      case 2:
-        return 'Library';
-      default:
-        return 'Eyobifay';
-    }
-  }
 }
