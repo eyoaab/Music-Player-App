@@ -4,3 +4,4 @@ export 'library/index.dart';
 export 'search/index.dart';
 export 'playlist/index.dart';
 export 'all_songs/index.dart';
+export 'developer/index.dart';

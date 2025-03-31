@@ -60,6 +60,7 @@ dependencies:
   shimmer: ^3.0.0
   google_fonts: ^6.1.0
   connectivity_plus: ^5.0.2
+  url_launcher: ^6.1.14
 
   # Device preview for testing on different devices
   device_preview: ^1.1.0

@@ -99,6 +99,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            leading: IconButton(
+              icon: Icon(
+                Icons.code,
+                color: primaryColor,
+              ),
+              tooltip: 'Developer Info',
+              onPressed: () {
+                Navigator.pushNamed(context, '/developer');
+              },
+            ),
             actions: [
               IconButton(
                 icon: Icon(

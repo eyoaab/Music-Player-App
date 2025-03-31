@@ -7,6 +7,7 @@ import 'screens/library/library_screen.dart';
 import 'screens/playlist/detail_screen.dart';
 import 'screens/playlist/add_to_playlist_screen.dart';
 import 'screens/all_songs/all_songs_screen.dart';
+import 'screens/developer/developer_screen.dart';
 
 class AppRoutes {
   // Route names
@@ -16,6 +17,7 @@ class AppRoutes {
   static const String playlistDetail = '/playlist/detail';
   static const String addToPlaylist = '/playlist/add';
   static const String allSongs = '/songs/all';
+  static const String developer = '/developer';
 
   // Route generation
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -51,6 +53,9 @@ class AppRoutes {
             isRecentlyPlayed: args['isRecentlyPlayed'] as bool? ?? false,
           ),
         );
+
+      case developer:
+        return MaterialPageRoute(builder: (_) => const DeveloperScreen());
 
       default:
         return MaterialPageRoute(
